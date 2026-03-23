@@ -27,8 +27,10 @@ type testcase struct {
 type patchGetter func(tc *testcase) Patch
 
 func TestRFCCases(t *testing.T) {
+	// https://datatracker.ietf.org/doc/html/rfc6902#appendix-A
 	runCasesFromFile(t, "testdata/tests/jsonpatch/rfc.json", Factorize(), LCS())
-}                                  // https://datatracker.ietf.org/doc/html/rfc6902#appendix-A
+}
+
 func TestArrayCases(t *testing.T)  { runCasesFromFile(t, "testdata/tests/jsonpatch/array.json") }
 func TestObjectCases(t *testing.T) { runCasesFromFile(t, "testdata/tests/jsonpatch/object.json") }
 func TestRootCases(t *testing.T)   { runCasesFromFile(t, "testdata/tests/jsonpatch/root.json") }
@@ -322,6 +324,172 @@ func Test_issue29_alt(t *testing.T) {
 	}
 	if op := patch[0]; op.Path != "/a/b/1" && op.Type != OperationReplace {
 		t.Errorf("expected replace operation at path /a/b/1, got %s at %s", op.Type, op.Path)
+	}
+}
+
+func Test_issue45(t *testing.T) {
+	src := []byte(`{"key":{"b":{"$numberInt":"1"}},"name":"b1"}`)
+	tgt := []byte(`{"key":{"bb":{"$numberInt":"1"}},"name":"b1"}`)
+
+	patch, err := CompareJSON(src, tgt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(patch) != 2 {
+		t.Fatalf("expected 2 operations without factorize, got %d", len(patch))
+	}
+	if op := patch[0]; op.Type != OperationRemove || op.Path != "/key/b" {
+		t.Fatalf("expected first operation to remove /key/b, got %s at %s", op.Type, op.Path)
+	}
+	if op := patch[1]; op.Type != OperationAdd || op.Path != "/key/bb" {
+		t.Fatalf("expected second operation to add /key/bb, got %s at %s", op.Type, op.Path)
+	}
+
+	patch, err = CompareJSON(src, tgt, Factorize())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(patch) != 1 {
+		t.Fatalf("expected 1 operation with factorize, got %d", len(patch))
+	}
+	if op := patch[0]; op.Type != OperationMove || op.From != "/key/b" || op.Path != "/key/bb" {
+		t.Fatalf("expected move from /key/b to /key/bb, got %s from %s to %s", op.Type, op.From, op.Path)
+	}
+}
+
+func TestHasProperPathPrefix(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		prefix string
+		path   string
+		want   bool
+	}{
+		// root pointer
+		{
+			name:   "root is a proper prefix of any non-root path",
+			prefix: "",
+			path:   "/a",
+			want:   true,
+		},
+		{
+			name:   "root is a proper prefix of a deep path",
+			prefix: "",
+			path:   "/a/b/c",
+			want:   true,
+		},
+		{
+			name:   "root is NOT a proper prefix of itself",
+			prefix: "",
+			path:   "",
+			want:   false,
+		},
+		// exact match
+		{
+			name:   "identical paths are not a proper prefix",
+			prefix: "/a",
+			path:   "/a",
+			want:   false,
+		},
+		{
+			name:   "identical deep paths are not a proper prefix",
+			prefix: "/a/b",
+			path:   "/a/b",
+			want:   false,
+		},
+		// genuine parent → child relationship
+		{
+			name:   "direct child is a proper prefix",
+			prefix: "/a",
+			path:   "/a/b",
+			want:   true,
+		},
+		{
+			name:   "grandchild is a proper prefix",
+			prefix: "/a",
+			path:   "/a/b/c",
+			want:   true,
+		},
+		{
+			name:   "nested direct child is a proper prefix",
+			prefix: "/key/b",
+			path:   "/key/b/child",
+			want:   true,
+		},
+		// sibling paths that share a string prefix
+		{
+			name:   "sibling path /key/bb is NOT a proper prefix of /key/b",
+			prefix: "/key/bb",
+			path:   "/key/b",
+			want:   false,
+		},
+		{
+			name:   "sibling path /key/b is NOT a proper prefix of /key/bb",
+			prefix: "/key/b",
+			path:   "/key/bb",
+			want:   false,
+		},
+		{
+			name:   "sibling /a is NOT a proper prefix of /ab",
+			prefix: "/a",
+			path:   "/ab",
+			want:   false,
+		},
+		{
+			name:   "sibling /foo/bar is NOT a proper prefix of /foo/barz",
+			prefix: "/foo/bar",
+			path:   "/foo/barz",
+			want:   false,
+		},
+		// unrelated paths
+		{
+			name:   "completely different paths",
+			prefix: "/a",
+			path:   "/b",
+			want:   false,
+		},
+		{
+			name:   "path is shorter than prefix",
+			prefix: "/a/b/c",
+			path:   "/a/b",
+			want:   false,
+		},
+		// array index paths
+		{
+			name:   "array parent is a proper prefix of element",
+			prefix: "/0",
+			path:   "/0/name",
+			want:   true,
+		},
+		{
+			name:   "array index /1 is NOT a proper prefix of /10",
+			prefix: "/1",
+			path:   "/10",
+			want:   false,
+		},
+		{
+			name:   "array index /1 is NOT a proper prefix of /11",
+			prefix: "/1",
+			path:   "/11",
+			want:   false,
+		},
+		{
+			name:   "array index /10 is a proper prefix of /10/x",
+			prefix: "/10",
+			path:   "/10/x",
+			want:   true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := hasProperPathPrefix(tc.prefix, tc.path)
+			if got != tc.want {
+				t.Errorf("hasProperPathPrefix(%q, %q) = %v, want %v",
+					tc.prefix, tc.path, got, tc.want)
+			}
+		})
 	}
 }
 

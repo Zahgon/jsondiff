@@ -100,6 +100,27 @@
         { "op": "move", "from": "/a", "path": "/b" },
         { "op": "add", "path": "/c", "value": 1 }
     ]
+}, {
+    "name": "factorization does not drop sibling add with shared prefix",
+    "before": {
+        "key": {
+            "b": {
+                "$numberInt": "1"
+            }
+        },
+        "name": "b1"
+    },
+    "after": {
+        "key": {
+            "bb": {
+                "$numberInt": "1"
+            }
+        },
+        "name": "b1"
+    },
+    "patch": [
+        { "op": "move", "from": "/key/b", "path": "/key/bb" }
+    ]
 },{
     "name": "impossible factorization",
     "before": [

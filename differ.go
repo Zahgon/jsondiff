@@ -482,7 +482,7 @@ func (d *Differ) add(path string, v interface{}, doc string, lcs bool) {
 		// The "from" location MUST NOT be a proper prefix
 		// of the "path" location; i.e., a location cannot
 		// be moved into one of its children.
-		if !strings.HasPrefix(path, op.Path) {
+		if !hasProperPathPrefix(op.Path, path) {
 			d.patch = d.patch.remove(idx)
 			if !lcs {
 				d.patch = d.patch.append(OperationMove, op.Path, path, v, v, 0)
@@ -527,6 +527,19 @@ func (d *Differ) findRemoved(v interface{}) int {
 		}
 	}
 	return -1
+}
+
+func hasProperPathPrefix(prefix, path string) bool {
+	if prefix == emptyPointer {
+		return path != emptyPointer
+	}
+	if !strings.HasPrefix(path, prefix) {
+		return false
+	}
+	if len(path) == len(prefix) {
+		return false
+	}
+	return path[len(prefix)] == separator
 }
 
 func (d *Differ) applyOpts(opts ...Option) {
