@@ -4,26 +4,18 @@ package jsondiff
 type Option func(*Differ)
 
 // Factorize enables factorization of operations.
-func Factorize() Option {
-	return func(o *Differ) { o.opts.factorize = true }
-}
+func Factorize() Option { _ = "STUB: not implemented"; return *new(Option) }
 
 // Rationalize enables rationalization of operations.
-func Rationalize() Option {
-	return func(o *Differ) { o.opts.rationalize = true }
-}
+func Rationalize() Option { _ = "STUB: not implemented"; return *new(Option) }
 
 // Equivalent disables the generation of operations for
 // arrays of equal length and unordered/equal elements.
-func Equivalent() Option {
-	return func(o *Differ) { o.opts.equivalent = true }
-}
+func Equivalent() Option { _ = "STUB: not implemented"; return *new(Option) }
 
 // LCS uses a Longest Common Subsequence to compare
 // arrays.
-func LCS() Option {
-	return func(o *Differ) { o.opts.lcs = true }
-}
+func LCS() Option { _ = "STUB: not implemented"; return *new(Option) }
 
 // Invertible enables the generation of an invertible
 // patch, by preceding each remove and replace operation
@@ -32,60 +24,31 @@ func LCS() Option {
 // Note that copy operations are not invertible, and as
 // such, using this option disable the usage of copy
 // operation in favor of add operations.
-func Invertible() Option {
-	return func(o *Differ) { o.opts.invertible = true }
-}
+func Invertible() Option { _ = "STUB: not implemented"; return *new(Option) }
 
 // MarshalFunc allows to define the function/package
 // used to marshal objects to JSON.
 // The prototype of fn must match the one of the
 // encoding/json.Marshal function.
-func MarshalFunc(fn marshalFunc) Option {
-	return func(o *Differ) {
-		o.opts.marshal = fn
-	}
-}
+func MarshalFunc(fn marshalFunc) Option { _ = "STUB: not implemented"; return *new(Option) }
 
 // UnmarshalFunc allows to define the function/package
 // used to unmarshal objects from JSON.
 // The prototype of fn must match the one of the
 // encoding/json.Unmarshal function.
-func UnmarshalFunc(fn unmarshalFunc) Option {
-	return func(o *Differ) {
-		o.opts.unmarshal = fn
-	}
-}
+func UnmarshalFunc(fn unmarshalFunc) Option { _ = "STUB: not implemented"; return *new(Option) }
 
 // SkipCompact instructs to skip the compaction of the input
 // JSON documents when the Rationalize option is enabled.
-func SkipCompact() Option {
-	return func(o *Differ) {
-		o.isCompact = true
-	}
-}
+func SkipCompact() Option { _ = "STUB: not implemented"; return *new(Option) }
 
 // InPlaceCompaction instructs to compact the input JSON
 // documents in place; it does not allocate to create a
 // copy, but modify the original byte slice instead.
 // This option has no effect if used alongside SkipCompact.
-func InPlaceCompaction() Option {
-	return func(o *Differ) {
-		o.compactInPlace = true
-	}
-}
+func InPlaceCompaction() Option { _ = "STUB: not implemented"; return *new(Option) }
 
 // Ignores defines the list of values that are ignored
 // by the diff generation, represented as a list of JSON
 // Pointer strings (RFC 6901).
-func Ignores(ptrs ...string) Option {
-	return func(o *Differ) {
-		if len(ptrs) == 0 {
-			return
-		}
-		o.opts.ignores = make(map[string]struct{}, len(ptrs))
-		for _, ptr := range ptrs {
-			o.opts.ignores[ptr] = struct{}{}
-		}
-		o.opts.hasIgnore = true
-	}
-}
+func Ignores(ptrs ...string) Option { _ = "STUB: not implemented"; return *new(Option) }
